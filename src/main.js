@@ -140,6 +140,8 @@ blockquote { border-left-color: #999 !important; color: #555 !important; }
 .inline-code { background: #eff1f3 !important; color: #c7254e !important; border-color: #d0d0d0 !important; }
 a { color: #0366d6 !important; }
 strong { color: #111 !important; }
+.page-break { page-break-before: always; border: none !important; margin: 0 !important; padding: 0 !important; height: 0 !important; overflow: hidden !important; }
+.page-break span { display: none !important; }
 ${borderCSS}
 </style>
 </head>

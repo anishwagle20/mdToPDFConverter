@@ -588,6 +588,27 @@ body.preview-only #preview-panel {
   margin: 12px 0;
 }
 
+/* ---- Page Break Indicator ---- */
+.preview-content .page-break {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0;
+  padding: 6px 0;
+  border-top: 2px dashed var(--border-light);
+  border-bottom: 2px dashed var(--border-light);
+  user-select: none;
+}
+.preview-content .page-break span {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  padding: 2px 12px;
+}
+
 /* ---- Settings Panel ---- */
 #settings-overlay {
   display: none;

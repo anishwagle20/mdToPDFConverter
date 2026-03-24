@@ -24,6 +24,7 @@ const TOKEN = {
   BLOCKQUOTE: 'blockquote',
   HORIZONTAL_RULE: 'horizontal_rule',
   TABLE: 'table',
+  PAGE_BREAK: 'page_break',
 };
 
 function tokenize(markdown) {
@@ -35,6 +36,12 @@ function tokenize(markdown) {
     const line = lines[i];
 
     if (/^\s*$/.test(line)) { i++; continue; }
+
+    if (/^<!--\s*pagebreak\s*-->\s*$/i.test(line)) {
+      tokens.push({ type: TOKEN.PAGE_BREAK, startLine: i });
+      i++;
+      continue;
+    }
 
     if (/^(\s{0,3})([-*_])\s*\2\s*\2[\s\2]*$/.test(line)) {
       tokens.push({ type: TOKEN.HORIZONTAL_RULE, startLine: i });
@@ -406,6 +413,9 @@ function tokensToHtml(tokens) {
       case TOKEN.HORIZONTAL_RULE:
         html += `<hr data-source-line="${token.startLine}" />\n`;
         break;
+      case TOKEN.PAGE_BREAK:
+        html += `<div class="page-break" data-source-line="${token.startLine}"><span>Page Break</span></div>\n`;
+        break;
       case TOKEN.CODE_BLOCK: {
         const highlighted = highlightCode(token.content, token.lang);
         const langClass = token.lang ? ` language-${escapeHtml(token.lang)}` : '';
@@ -457,6 +467,47 @@ const settingsOverlay = document.getElementById('settings-overlay');
 let currentFilePath = null;
 let isDirty = false;
 let debounceTimer = null;
+
+// ---- Undo / Redo History ----
+const undoStack = [];
+const redoStack = [];
+const MAX_UNDO = 200;
+let lastSnapshotTimer = null;
+
+function saveSnapshot() {
+  const snap = { text: editor.value, cursor: editor.selectionStart };
+  if (undoStack.length > 0 && undoStack[undoStack.length - 1].text === snap.text) return;
+  undoStack.push(snap);
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack.length = 0;
+}
+
+function debouncedSnapshot() {
+  clearTimeout(lastSnapshotTimer);
+  lastSnapshotTimer = setTimeout(saveSnapshot, 400);
+}
+
+function performUndo() {
+  if (undoStack.length === 0) return;
+  redoStack.push({ text: editor.value, cursor: editor.selectionStart });
+  const snap = undoStack.pop();
+  editor.value = snap.text;
+  editor.selectionStart = editor.selectionEnd = snap.cursor;
+  isDirty = true;
+  updateStatus();
+  updatePreview();
+}
+
+function performRedo() {
+  if (redoStack.length === 0) return;
+  undoStack.push({ text: editor.value, cursor: editor.selectionStart });
+  const snap = redoStack.pop();
+  editor.value = snap.text;
+  editor.selectionStart = editor.selectionEnd = snap.cursor;
+  isDirty = true;
+  updateStatus();
+  updatePreview();
+}
 
 // ---- Settings state ----
 const pdfSettings = {
@@ -603,6 +654,7 @@ editor.addEventListener('input', () => {
   isDirty = true;
   updateStatus();
   debouncedUpdate();
+  debouncedSnapshot();
 });
 
 editor.addEventListener('keydown', (e) => {
@@ -628,6 +680,9 @@ function setFile(path, content) {
   editor.value = content;
   isDirty = false;
   fileName.textContent = path ? path.split('/').pop().split('\\').pop() : 'No file';
+  undoStack.length = 0;
+  redoStack.length = 0;
+  saveSnapshot();
   updateStatus();
   updatePreview();
 }
@@ -709,6 +764,14 @@ document.addEventListener('keydown', (e) => {
   if (mod && e.key === 'k') {
     e.preventDefault();
     applyToolbarAction('link');
+  }
+  if (mod && e.key === 'z' && !e.shiftKey) {
+    e.preventDefault();
+    performUndo();
+  }
+  if (mod && e.key === 'z' && e.shiftKey) {
+    e.preventDefault();
+    performRedo();
   }
 });
 
@@ -801,6 +864,7 @@ function applyFont() {
 // ---- Markdown Formatting Toolbar ----
 
 function applyToolbarAction(action) {
+  if (action !== 'undo' && action !== 'redo') saveSnapshot();
   const start = editor.selectionStart;
   const end = editor.selectionEnd;
   const text = editor.value;
@@ -922,6 +986,17 @@ function applyToolbarAction(action) {
       cursorStart = start + replacement.length;
       cursorEnd = cursorStart;
       break;
+    case 'pagebreak':
+      replacement = '\n<!-- pagebreak -->\n';
+      cursorStart = start + replacement.length;
+      cursorEnd = cursorStart;
+      break;
+    case 'undo':
+      performUndo();
+      return;
+    case 'redo':
+      performRedo();
+      return;
     default:
       return;
   }
@@ -933,6 +1008,7 @@ function applyToolbarAction(action) {
   isDirty = true;
   updateStatus();
   debouncedUpdate();
+  saveSnapshot();
 }
 
 document.getElementById('md-toolbar').addEventListener('click', (e) => {
