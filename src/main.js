@@ -81,7 +81,7 @@ ipcMain.handle('save-file-as', async (_event, { content }) => {
   return result.filePath;
 });
 
-ipcMain.handle('export-pdf', async (_event, { html, margins, pageBorder, font }) => {
+ipcMain.handle('export-pdf', async (_event, { html, margins, pageBorder, font, lineSpacing }) => {
   const result = await dialog.showSaveDialog(mainWindow, {
     filters: [{ name: 'PDF', extensions: ['pdf'] }],
     defaultPath: 'output.pdf',
@@ -91,6 +91,7 @@ ipcMain.handle('export-pdf', async (_event, { html, margins, pageBorder, font })
   const pdfMargins = margins || { top: 8, bottom: 8, left: 8, right: 8 };
   const enableBorder = pageBorder || false;
   const fontFamily = font || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+  const ls = lineSpacing || 1.4;
 
   // Create a hidden window for PDF generation to preserve styling
   const pdfWindow = new BrowserWindow({
@@ -107,8 +108,10 @@ ipcMain.handle('export-pdf', async (_event, { html, margins, pageBorder, font })
   const cssContent = fs.readFileSync(cssPath, 'utf-8');
 
   const borderCSS = enableBorder
-    ? `@page { border: 1.5px solid #333; padding: 4mm; }`
-    : '';
+    ? `.pdf-border-wrap { border: 1.5px solid #333; padding: 8mm; min-height: 100vh; box-decoration-break: clone; -webkit-box-decoration-break: clone; }`
+    : '.pdf-border-wrap { }';
+
+  const contentWrap = enableBorder ? 'pdf-border-wrap' : '';
 
   const fullHtml = `<!DOCTYPE html>
 <html>
@@ -117,8 +120,10 @@ ipcMain.handle('export-pdf', async (_event, { html, margins, pageBorder, font })
 <style>
 ${cssContent}
 /* PDF-specific overrides */
-body { background: #fff !important; color: #1a1a1a !important; padding: 20px; font-family: ${fontFamily}; }
-.preview-content { max-width: 100%; padding: 0; font-family: ${fontFamily}; }
+body { background: #fff !important; color: #1a1a1a !important; padding: 0; margin: 0; font-family: ${fontFamily}; }
+.preview-content { max-width: 100%; padding: 20px; font-family: ${fontFamily}; line-height: ${ls}; }
+.preview-content p, .preview-content li { line-height: ${ls}; }
+.preview-content h1, .preview-content h2, .preview-content h3, .preview-content h4, .preview-content h5, .preview-content h6 { line-height: ${Math.max(1.2, ls - 0.2)}; }
 h1, h2, h3, h4, h5, h6 { color: #1a1a1a !important; }
 p, li, td, th { color: #333 !important; }
 hr { border-color: #ccc !important; }
@@ -146,7 +151,7 @@ ${borderCSS}
 </style>
 </head>
 <body>
-<div class="preview-content">${html}</div>
+<div class="${contentWrap}"><div class="preview-content">${html}</div></div>
 </body>
 </html>`;
 

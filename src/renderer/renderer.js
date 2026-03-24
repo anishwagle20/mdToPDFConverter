@@ -462,7 +462,7 @@ const btnTheme = document.getElementById('btn-theme');
 const btnSettings = document.getElementById('btn-settings');
 const resizer = document.getElementById('resizer');
 const editorPanel = document.getElementById('editor-panel');
-const settingsOverlay = document.getElementById('settings-overlay');
+const settingsDropdown = document.getElementById('settings-dropdown');
 
 let currentFilePath = null;
 let isDirty = false;
@@ -516,6 +516,7 @@ const pdfSettings = {
   marginLeft: 8,
   marginRight: 8,
   pageBorder: false,
+  lineSpacing: 1.4,
 };
 let selectedFont = 'system';
 
@@ -721,6 +722,7 @@ btnExport.addEventListener('click', async () => {
     },
     pageBorder: pdfSettings.pageBorder,
     font: FONT_MAP[selectedFont] || FONT_MAP.system,
+    lineSpacing: pdfSettings.lineSpacing,
   });
   if (path) {
     showNotification('PDF exported: ' + path.split('/').pop());
@@ -819,41 +821,47 @@ window.electronAPI.onFileOpened((data) => {
   setFile(data.filePath, data.content);
 });
 
-// ---- Settings Panel ----
+// ---- Settings Dropdown ----
 
-btnSettings.addEventListener('click', () => {
-  document.getElementById('margin-top').value = pdfSettings.marginTop;
-  document.getElementById('margin-bottom').value = pdfSettings.marginBottom;
-  document.getElementById('margin-left').value = pdfSettings.marginLeft;
-  document.getElementById('margin-right').value = pdfSettings.marginRight;
-  document.getElementById('page-border').checked = pdfSettings.pageBorder;
-  document.getElementById('font-select').value = selectedFont;
-  settingsOverlay.classList.add('open');
+btnSettings.addEventListener('click', (e) => {
+  e.stopPropagation();
+  settingsDropdown.classList.toggle('open');
 });
 
-document.getElementById('settings-cancel').addEventListener('click', () => {
-  settingsOverlay.classList.remove('open');
-});
-
-settingsOverlay.addEventListener('click', (e) => {
-  if (e.target === settingsOverlay) settingsOverlay.classList.remove('open');
-});
-
-document.getElementById('settings-apply').addEventListener('click', () => {
-  pdfSettings.marginTop = parseInt(document.getElementById('margin-top').value, 10) || 8;
-  pdfSettings.marginBottom = parseInt(document.getElementById('margin-bottom').value, 10) || 8;
-  pdfSettings.marginLeft = parseInt(document.getElementById('margin-left').value, 10) || 8;
-  pdfSettings.marginRight = parseInt(document.getElementById('margin-right').value, 10) || 8;
-  pdfSettings.pageBorder = document.getElementById('page-border').checked;
-
-  const newFont = document.getElementById('font-select').value;
-  if (newFont !== selectedFont) {
-    selectedFont = newFont;
-    applyFont();
+document.addEventListener('click', (e) => {
+  if (!settingsDropdown.contains(e.target) && e.target !== btnSettings && !btnSettings.contains(e.target)) {
+    settingsDropdown.classList.remove('open');
   }
+});
 
-  settingsOverlay.classList.remove('open');
-  showNotification('Settings applied');
+// Live-apply settings from dropdown controls
+document.getElementById('font-select').addEventListener('change', (e) => {
+  selectedFont = e.target.value;
+  applyFont();
+});
+
+document.getElementById('page-border').addEventListener('change', (e) => {
+  pdfSettings.pageBorder = e.target.checked;
+});
+
+['margin-top', 'margin-bottom', 'margin-left', 'margin-right'].forEach(id => {
+  document.getElementById(id).addEventListener('change', (e) => {
+    const key = 'margin' + id.split('-')[1].charAt(0).toUpperCase() + id.split('-')[1].slice(1);
+    pdfSettings[key] = parseInt(e.target.value, 10) || 8;
+  });
+});
+
+// Line spacing controls
+const lsValue = document.getElementById('ls-value');
+
+document.getElementById('ls-decrease').addEventListener('click', () => {
+  pdfSettings.lineSpacing = Math.max(1.0, +(pdfSettings.lineSpacing - 0.1).toFixed(1));
+  lsValue.textContent = pdfSettings.lineSpacing.toFixed(1);
+});
+
+document.getElementById('ls-increase').addEventListener('click', () => {
+  pdfSettings.lineSpacing = Math.min(3.0, +(pdfSettings.lineSpacing + 0.1).toFixed(1));
+  lsValue.textContent = pdfSettings.lineSpacing.toFixed(1);
 });
 
 function applyFont() {
