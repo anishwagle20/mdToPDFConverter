@@ -37,7 +37,7 @@ function tokenize(markdown) {
     if (/^\s*$/.test(line)) { i++; continue; }
 
     if (/^(\s{0,3})([-*_])\s*\2\s*\2[\s\2]*$/.test(line)) {
-      tokens.push({ type: TOKEN.HORIZONTAL_RULE });
+      tokens.push({ type: TOKEN.HORIZONTAL_RULE, startLine: i });
       i++;
       continue;
     }
@@ -45,67 +45,73 @@ function tokenize(markdown) {
     if (/^```(\w*)/.test(line)) {
       const match = line.match(/^```(\w*)/);
       const lang = match[1] || '';
+      const codeStartLine = i;
       const codeLines = [];
       i++;
       while (i < lines.length && !/^```\s*$/.test(lines[i])) {
         codeLines.push(lines[i]);
         i++;
       }
-      tokens.push({ type: TOKEN.CODE_BLOCK, lang, content: codeLines.join('\n') });
+      tokens.push({ type: TOKEN.CODE_BLOCK, lang, content: codeLines.join('\n'), startLine: codeStartLine });
       i++;
       continue;
     }
 
     const headingMatch = line.match(/^(#{1,6})\s+(.+)/);
     if (headingMatch) {
-      tokens.push({ type: TOKEN.HEADING, level: headingMatch[1].length, content: headingMatch[2] });
+      tokens.push({ type: TOKEN.HEADING, level: headingMatch[1].length, content: headingMatch[2], startLine: i });
       i++;
       continue;
     }
 
     if (/\|/.test(line) && i + 1 < lines.length && /^\|?\s*[-:]+[-| :]*$/.test(lines[i + 1])) {
+      const tableStartLine = i;
       const tableLines = [];
       while (i < lines.length && /\|/.test(lines[i])) {
         tableLines.push(lines[i]);
         i++;
       }
-      tokens.push({ type: TOKEN.TABLE, lines: tableLines });
+      tokens.push({ type: TOKEN.TABLE, lines: tableLines, startLine: tableStartLine });
       continue;
     }
 
     if (/^>\s?/.test(line)) {
+      const bqStartLine = i;
       const bqLines = [];
       while (i < lines.length && /^>\s?/.test(lines[i])) {
         bqLines.push(lines[i].replace(/^>\s?/, ''));
         i++;
       }
-      tokens.push({ type: TOKEN.BLOCKQUOTE, content: bqLines.join('\n') });
+      tokens.push({ type: TOKEN.BLOCKQUOTE, content: bqLines.join('\n'), startLine: bqStartLine });
       continue;
     }
 
     if (/^(\s*)([-*+])\s+/.test(line)) {
+      const ulStartLine = i;
       const listItems = [];
       while (i < lines.length && /^(\s*)([-*+])\s+/.test(lines[i])) {
         const m = lines[i].match(/^(\s*)([-*+])\s+(.*)/);
         listItems.push({ indent: m[1].length, content: m[3] });
         i++;
       }
-      tokens.push({ type: TOKEN.UNORDERED_LIST, items: listItems });
+      tokens.push({ type: TOKEN.UNORDERED_LIST, items: listItems, startLine: ulStartLine });
       continue;
     }
 
     if (/^\s*\d+\.\s+/.test(line)) {
+      const olStartLine = i;
       const listItems = [];
       while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
         const m = lines[i].match(/^(\s*)\d+\.\s+(.*)/);
         listItems.push({ indent: m[1].length, content: m[2] });
         i++;
       }
-      tokens.push({ type: TOKEN.ORDERED_LIST, items: listItems });
+      tokens.push({ type: TOKEN.ORDERED_LIST, items: listItems, startLine: olStartLine });
       continue;
     }
 
     {
+      const paraStartLine = i;
       const paraLines = [];
       while (
         i < lines.length &&
@@ -122,7 +128,7 @@ function tokenize(markdown) {
         i++;
       }
       if (paraLines.length > 0) {
-        tokens.push({ type: TOKEN.PARAGRAPH, content: paraLines.join('\n') });
+        tokens.push({ type: TOKEN.PARAGRAPH, content: paraLines.join('\n'), startLine: paraStartLine });
       }
     }
   }
@@ -391,33 +397,33 @@ function tokensToHtml(tokens) {
     switch (token.type) {
       case TOKEN.HEADING: {
         const id = token.content.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
-        html += `<h${token.level} id="${escapeHtml(id)}">${parseInline(token.content)}</h${token.level}>\n`;
+        html += `<h${token.level} id="${escapeHtml(id)}" data-source-line="${token.startLine}">${parseInline(token.content)}</h${token.level}>\n`;
         break;
       }
       case TOKEN.PARAGRAPH:
-        html += `<p>${parseInline(token.content)}</p>\n`;
+        html += `<p data-source-line="${token.startLine}">${parseInline(token.content)}</p>\n`;
         break;
       case TOKEN.HORIZONTAL_RULE:
-        html += '<hr />\n';
+        html += `<hr data-source-line="${token.startLine}" />\n`;
         break;
       case TOKEN.CODE_BLOCK: {
         const highlighted = highlightCode(token.content, token.lang);
         const langClass = token.lang ? ` language-${escapeHtml(token.lang)}` : '';
         const langLabel = token.lang ? `<span class="code-lang-label">${escapeHtml(token.lang)}</span>` : '';
-        html += `<div class="code-block-wrapper">${langLabel}<pre><code class="hljs${langClass}">${highlighted}</code></pre></div>\n`;
+        html += `<div class="code-block-wrapper" data-source-line="${token.startLine}">${langLabel}<pre><code class="hljs${langClass}">${highlighted}</code></pre></div>\n`;
         break;
       }
       case TOKEN.UNORDERED_LIST:
-        html += buildList(token.items, 'ul');
+        html += buildList(token.items, 'ul').replace(/^<ul/, `<ul data-source-line="${token.startLine}"`);
         break;
       case TOKEN.ORDERED_LIST:
-        html += buildList(token.items, 'ol');
+        html += buildList(token.items, 'ol').replace(/^<ol/, `<ol data-source-line="${token.startLine}"`);
         break;
       case TOKEN.BLOCKQUOTE:
-        html += `<blockquote>${parseInline(token.content)}</blockquote>\n`;
+        html += `<blockquote data-source-line="${token.startLine}">${parseInline(token.content)}</blockquote>\n`;
         break;
       case TOKEN.TABLE:
-        html += parseTable(token.lines);
+        html += parseTable(token.lines).replace(/^<div class="table-wrapper"/, `<div class="table-wrapper" data-source-line="${token.startLine}"`);
         break;
     }
   }
@@ -496,32 +502,98 @@ function updateLineNumbers() {
   lineNumbers.textContent = nums;
 }
 
-// ---- Scroll Sync ----
+// ---- Scroll Sync (line-based) ----
 
 let syncingScroll = false;
+
+function getElementTopInPreview(el) {
+  return el.getBoundingClientRect().top - preview.getBoundingClientRect().top + preview.scrollTop;
+}
+
+function syncEditorToPreview() {
+  const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 20.8;
+  const topLine = Math.floor(editor.scrollTop / lineHeight);
+
+  const elements = preview.querySelectorAll('[data-source-line]');
+  if (elements.length === 0) {
+    const ratio = editor.scrollTop / (editor.scrollHeight - editor.clientHeight || 1);
+    preview.scrollTop = ratio * (preview.scrollHeight - preview.clientHeight);
+    return;
+  }
+
+  let prev = null, next = null;
+  for (const el of elements) {
+    const line = parseInt(el.dataset.sourceLine, 10);
+    if (line <= topLine) {
+      prev = { el, line };
+    } else {
+      next = { el, line };
+      break;
+    }
+  }
+
+  if (!prev) {
+    preview.scrollTop = 0;
+    return;
+  }
+
+  const prevTop = getElementTopInPreview(prev.el);
+  if (next) {
+    const nextTop = getElementTopInPreview(next.el);
+    const fraction = (topLine - prev.line) / (next.line - prev.line);
+    preview.scrollTop = prevTop + fraction * (nextTop - prevTop);
+  } else {
+    preview.scrollTop = prevTop;
+  }
+}
+
+function syncPreviewToEditor() {
+  const elements = preview.querySelectorAll('[data-source-line]');
+  if (elements.length === 0) {
+    const ratio = preview.scrollTop / (preview.scrollHeight - preview.clientHeight || 1);
+    editor.scrollTop = ratio * (editor.scrollHeight - editor.clientHeight);
+    return;
+  }
+
+  let prev = null, next = null;
+  for (const el of elements) {
+    const elTop = getElementTopInPreview(el);
+    if (elTop <= preview.scrollTop) {
+      prev = { el, line: parseInt(el.dataset.sourceLine, 10), top: elTop };
+    } else {
+      next = { el, line: parseInt(el.dataset.sourceLine, 10), top: elTop };
+      break;
+    }
+  }
+
+  if (!prev) {
+    editor.scrollTop = 0;
+    return;
+  }
+
+  const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 20.8;
+  let targetLine = prev.line;
+  if (next) {
+    const fraction = (preview.scrollTop - prev.top) / (next.top - prev.top || 1);
+    targetLine = prev.line + fraction * (next.line - prev.line);
+  }
+
+  editor.scrollTop = targetLine * lineHeight;
+}
 
 editor.addEventListener('scroll', () => {
   if (syncingScroll) return;
   syncingScroll = true;
-
-  // Sync line numbers
   lineNumbers.scrollTop = editor.scrollTop;
-
-  // Sync preview proportionally
-  const editorScrollRatio = editor.scrollTop / (editor.scrollHeight - editor.clientHeight || 1);
-  preview.scrollTop = editorScrollRatio * (preview.scrollHeight - preview.clientHeight);
-
+  syncEditorToPreview();
   requestAnimationFrame(() => { syncingScroll = false; });
 });
 
 preview.addEventListener('scroll', () => {
   if (syncingScroll) return;
   syncingScroll = true;
-
-  const previewScrollRatio = preview.scrollTop / (preview.scrollHeight - preview.clientHeight || 1);
-  editor.scrollTop = previewScrollRatio * (editor.scrollHeight - editor.clientHeight);
+  syncPreviewToEditor();
   lineNumbers.scrollTop = editor.scrollTop;
-
   requestAnimationFrame(() => { syncingScroll = false; });
 });
 
@@ -626,6 +698,18 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     btnExport.click();
   }
+  if (mod && e.key === 'b') {
+    e.preventDefault();
+    applyToolbarAction('bold');
+  }
+  if (mod && e.key === 'i') {
+    e.preventDefault();
+    applyToolbarAction('italic');
+  }
+  if (mod && e.key === 'k') {
+    e.preventDefault();
+    applyToolbarAction('link');
+  }
 });
 
 // ---- Resizer (drag to resize panels) ----
@@ -713,6 +797,166 @@ function applyFont() {
   const fontFamily = FONT_MAP[selectedFont] || FONT_MAP.system;
   preview.style.fontFamily = fontFamily;
 }
+
+// ---- Markdown Formatting Toolbar ----
+
+function applyToolbarAction(action) {
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const text = editor.value;
+  const selected = text.substring(start, end);
+  let before = text.substring(0, start);
+  let after = text.substring(end);
+  let replacement = '';
+  let cursorStart, cursorEnd;
+
+  switch (action) {
+    case 'bold':
+      replacement = `**${selected || 'bold text'}**`;
+      cursorStart = start + 2;
+      cursorEnd = start + replacement.length - 2;
+      break;
+    case 'italic':
+      replacement = `*${selected || 'italic text'}*`;
+      cursorStart = start + 1;
+      cursorEnd = start + replacement.length - 1;
+      break;
+    case 'strikethrough':
+      replacement = `~~${selected || 'strikethrough text'}~~`;
+      cursorStart = start + 2;
+      cursorEnd = start + replacement.length - 2;
+      break;
+    case 'heading': {
+      // Cycle through heading levels or insert H2
+      const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+      const lineEnd = text.indexOf('\n', start);
+      const line = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
+      const headingMatch = line.match(/^(#{1,6})\s/);
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const newLevel = level >= 6 ? 0 : level + 1;
+        const prefix = newLevel > 0 ? '#'.repeat(newLevel) + ' ' : '';
+        const lineContent = line.replace(/^#{1,6}\s/, '');
+        before = text.substring(0, lineStart);
+        after = text.substring(lineEnd === -1 ? text.length : lineEnd);
+        replacement = prefix + lineContent;
+        cursorStart = lineStart + replacement.length;
+        cursorEnd = cursorStart;
+      } else {
+        const lineContent = line;
+        before = text.substring(0, lineStart);
+        after = text.substring(lineEnd === -1 ? text.length : lineEnd);
+        replacement = '## ' + lineContent;
+        cursorStart = lineStart + replacement.length;
+        cursorEnd = cursorStart;
+      }
+      break;
+    }
+    case 'link':
+      if (selected) {
+        replacement = `[${selected}](url)`;
+        cursorStart = start + selected.length + 3;
+        cursorEnd = cursorStart + 3;
+      } else {
+        replacement = '[link text](url)';
+        cursorStart = start + 1;
+        cursorEnd = start + 10;
+      }
+      break;
+    case 'image':
+      if (selected) {
+        replacement = `![${selected}](image-url)`;
+        cursorStart = start + selected.length + 4;
+        cursorEnd = cursorStart + 9;
+      } else {
+        replacement = '![alt text](image-url)';
+        cursorStart = start + 2;
+        cursorEnd = start + 10;
+      }
+      break;
+    case 'code':
+      replacement = `\`${selected || 'code'}\``;
+      cursorStart = start + 1;
+      cursorEnd = start + replacement.length - 1;
+      break;
+    case 'codeblock':
+      replacement = `\n\`\`\`\n${selected || 'code here'}\n\`\`\`\n`;
+      cursorStart = start + 5;
+      cursorEnd = start + replacement.length - 5;
+      break;
+    case 'ul': {
+      const lines = (selected || 'Item').split('\n');
+      replacement = lines.map(l => `- ${l}`).join('\n');
+      cursorStart = start;
+      cursorEnd = start + replacement.length;
+      break;
+    }
+    case 'ol': {
+      const lines = (selected || 'Item').split('\n');
+      replacement = lines.map((l, i) => `${i + 1}. ${l}`).join('\n');
+      cursorStart = start;
+      cursorEnd = start + replacement.length;
+      break;
+    }
+    case 'tasklist': {
+      const lines = (selected || 'Task').split('\n');
+      replacement = lines.map(l => `- [ ] ${l}`).join('\n');
+      cursorStart = start;
+      cursorEnd = start + replacement.length;
+      break;
+    }
+    case 'blockquote': {
+      const lines = (selected || 'quote').split('\n');
+      replacement = lines.map(l => `> ${l}`).join('\n');
+      cursorStart = start;
+      cursorEnd = start + replacement.length;
+      break;
+    }
+    case 'hr':
+      replacement = '\n---\n';
+      cursorStart = start + replacement.length;
+      cursorEnd = cursorStart;
+      break;
+    case 'table':
+      replacement = '\n| Header 1 | Header 2 | Header 3 |\n| --- | --- | --- |\n| Cell 1 | Cell 2 | Cell 3 |\n';
+      cursorStart = start + replacement.length;
+      cursorEnd = cursorStart;
+      break;
+    default:
+      return;
+  }
+
+  editor.value = before + replacement + after;
+  editor.selectionStart = cursorStart;
+  editor.selectionEnd = cursorEnd;
+  editor.focus();
+  isDirty = true;
+  updateStatus();
+  debouncedUpdate();
+}
+
+document.getElementById('md-toolbar').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  applyToolbarAction(btn.dataset.action);
+});
+
+// ---- View Mode Toggle ----
+
+const btnSplit = document.getElementById('btn-split');
+const btnPreviewOnly = document.getElementById('btn-preview-only');
+
+btnSplit.addEventListener('click', () => {
+  document.body.classList.remove('preview-only');
+  btnSplit.classList.add('active');
+  btnPreviewOnly.classList.remove('active');
+});
+
+btnPreviewOnly.addEventListener('click', () => {
+  document.body.classList.add('preview-only');
+  btnPreviewOnly.classList.add('active');
+  btnSplit.classList.remove('active');
+});
 
 // ---- Initialize ----
 

@@ -11,17 +11,30 @@ Built with **Electron** and a **custom Markdown parser** — no external markdow
 ### Split-Screen Live Editor
 - **Left panel** — Raw Markdown editor with line numbers and syntax-aware tab support
 - **Right panel** — Live-rendered HTML preview with instant updates (120ms debounce)
-- **Scroll sync** — Proportional scroll synchronization between editor and preview
+- **Line-based scroll sync** — Source-line-aware synchronization that aligns editor and preview content by mapping markdown lines to rendered elements
 - **Resizable panels** — Drag the divider to adjust panel widths
+- **View mode toggle** — Switch between split view (editor + preview) and preview-only mode
 
 ### Custom Markdown Parser
 Fully hand-written tokenizer and renderer supporting:
 - Headings (`#` through `######`)
 - Ordered and unordered lists (with nesting)
+- Task lists (`- [ ]` / `- [x]`)
 - Tables (with column alignment)
 - Fenced code blocks (` ```lang `)
 - Inline code, **bold**, *italic*, ~~strikethrough~~
 - Links, images, blockquotes, horizontal rules
+
+### Markdown Formatting Toolbar
+A full formatting toolbar above the editor with buttons for:
+- **Bold**, **Italic**, **Strikethrough**
+- **Heading** (cycles H1–H6)
+- **Link**, **Image**
+- **Inline code**, **Code block**
+- **Bullet list**, **Numbered list**, **Task list**
+- **Blockquote**, **Horizontal rule**, **Table**
+
+Each button wraps or prefixes the selected text with the appropriate markdown syntax.
 
 ### Syntax Highlighting
 Regex-based highlighter for fenced code blocks:
@@ -64,6 +77,9 @@ Switch between **dark** (default) and **light** themes. Both themes have full st
 | `Ctrl/Cmd + O` | Open file |
 | `Ctrl/Cmd + S` | Save file |
 | `Ctrl/Cmd + P` | Export PDF |
+| `Ctrl/Cmd + B` | Bold |
+| `Ctrl/Cmd + I` | Italic |
+| `Ctrl/Cmd + K` | Insert link |
 | `Tab` | Insert 4 spaces |
 
 ---
@@ -121,10 +137,12 @@ npm run dev
 ### Usage
 
 1. **Edit** — Type or paste Markdown in the left panel; the right panel updates live
-2. **Open** — Click `Open` (or `Ctrl/Cmd + O`) to load a `.md` file from disk
-3. **Save** — Click `Save` (or `Ctrl/Cmd + S`) to write changes back
-4. **Settings** — Click `Settings` to configure PDF margins, page border, and font
-5. **Export** — Click `Export PDF` (or `Ctrl/Cmd + P`) to generate a styled PDF
+2. **Format** — Use the toolbar buttons (or shortcuts) to insert bold, italic, links, lists, code blocks, tables, etc.
+3. **View modes** — Toggle between split view and preview-only mode using the view buttons in the top-right toolbar
+4. **Open** — Click `Open` (or `Ctrl/Cmd + O`) to load a `.md` file from disk
+5. **Save** — Click `Save` (or `Ctrl/Cmd + S`) to write changes back
+6. **Settings** — Click `Settings` to configure PDF margins, page border, and font
+7. **Export** — Click `Export PDF` (or `Ctrl/Cmd + P`) to generate a styled PDF
 
 ---
 
