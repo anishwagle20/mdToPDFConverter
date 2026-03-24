@@ -1,0 +1,624 @@
+/* ============================
+   MD → PDF Live Editor Styles
+   Dark theme with clean typography
+   ============================ */
+
+:root {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary: #2d2d2d;
+  --bg-hover: #3c3c3c;
+  --text-primary: #d4d4d4;
+  --text-secondary: #c0c0c0;
+  --text-heading: #e0e0e0;
+  --accent: #569cd6;
+  --accent-hover: #6cb0f0;
+  --border: #3e3e3e;
+  --border-light: #555;
+  --toolbar-bg: #1a1a1a;
+  --editor-bg: #1e1e1e;
+  --preview-bg: #1e1e1e;
+  --code-bg: #0d1117;
+  --code-border: #30363d;
+  --table-header-bg: #30363d;
+  --table-border: #4a5568;
+  --table-stripe: transparent;
+  --scrollbar-thumb: #555;
+  --scrollbar-track: #2a2a2a;
+}
+
+.light-theme {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e8e8e8;
+  --bg-hover: #ddd;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666;
+  --text-heading: #111;
+  --accent: #0366d6;
+  --accent-hover: #0550ae;
+  --border: #d0d0d0;
+  --border-light: #bbb;
+  --toolbar-bg: #e8e8e8;
+  --editor-bg: #ffffff;
+  --preview-bg: #ffffff;
+  --code-bg: #0d1117;
+  --code-border: #30363d;
+  --table-header-bg: #f0f0f0;
+  --table-border: #ccc;
+  --table-stripe: #f8f8f8;
+  --scrollbar-thumb: #bbb;
+  --scrollbar-track: #e0e0e0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Toolbar ---- */
+#toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--toolbar-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 12px;
+  height: 40px;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.toolbar-left, .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+
+.app-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent);
+  margin-right: 12px;
+  letter-spacing: 0.5px;
+}
+
+#toolbar button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+#toolbar button:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+#toolbar button svg {
+  flex-shrink: 0;
+}
+
+.file-indicator {
+  font-size: 11px;
+  color: var(--text-secondary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-indicator {
+  font-size: 11px;
+  color: var(--accent);
+  min-width: 60px;
+  text-align: right;
+}
+
+/* ---- Editor Container ---- */
+#editor-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---- Panel Headers ---- */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.line-info {
+  font-weight: 400;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ---- Editor Panel ---- */
+#editor-panel {
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+  min-width: 250px;
+  background: var(--editor-bg);
+}
+
+.editor-wrapper {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.line-numbers {
+  width: 48px;
+  padding: 12px 8px 12px 4px;
+  text-align: right;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+#md-editor {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 12px;
+  background: var(--editor-bg);
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 4;
+  white-space: pre;
+  overflow: auto;
+}
+
+#md-editor::placeholder {
+  color: var(--text-secondary);
+}
+
+/* ---- Resizer ---- */
+#resizer {
+  width: 4px;
+  background: var(--border);
+  cursor: col-resize;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+#resizer:hover, #resizer.active {
+  background: var(--accent);
+}
+
+/* ---- Preview Panel ---- */
+#preview-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 250px;
+  background: var(--preview-bg);
+}
+
+#preview {
+  flex: 1;
+  overflow: auto;
+  padding: 24px 32px;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* ======================================
+   PREVIEW CONTENT STYLES
+   Match reference HTML appearance
+   ====================================== */
+
+.preview-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.preview-content h1 {
+  font-size: 2em;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin: 28px 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+
+.preview-content h2 {
+  font-size: 1.6em;
+  font-weight: 600;
+  color: var(--text-heading);
+  margin: 24px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.preview-content h3 {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: var(--text-heading);
+  margin: 20px 0 10px;
+}
+
+.preview-content h4 {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 16px 0 8px;
+}
+
+.preview-content h5 {
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--text-heading);
+  margin: 14px 0 6px;
+}
+
+.preview-content h6 {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--text-heading);
+  margin: 12px 0 6px;
+}
+
+.preview-content p {
+  margin: 10px 0;
+  line-height: 1.75;
+}
+
+.preview-content a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.preview-content a:hover {
+  text-decoration: underline;
+  color: var(--accent-hover);
+}
+
+.preview-content strong {
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.preview-content em {
+  font-style: italic;
+}
+
+.preview-content del {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+/* ---- Lists ---- */
+.preview-content ul, .preview-content ol {
+  margin: 10px 0;
+  padding-left: 28px;
+}
+
+.preview-content li {
+  margin: 4px 0;
+  line-height: 1.7;
+}
+
+.preview-content ul li {
+  list-style-type: disc;
+}
+
+.preview-content ul li ul li {
+  list-style-type: circle;
+}
+
+.preview-content ol li {
+  list-style-type: decimal;
+}
+
+/* ---- Horizontal Rule ---- */
+.preview-content hr {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: 24px 0;
+}
+
+/* ---- Blockquote ---- */
+.preview-content blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 14px 0;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border-radius: 0 6px 6px 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ---- Inline Code ---- */
+.preview-content .inline-code {
+  background: var(--bg-tertiary);
+  color: #ce9178;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+  font-size: 0.9em;
+  border: 1px solid var(--border);
+}
+
+/* ---- Code Blocks ---- */
+.code-block-wrapper {
+  position: relative;
+  margin: 16px 0;
+  border: 1px solid var(--code-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--code-bg);
+}
+
+.code-lang-label {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  background: rgba(110,118,129,0.15);
+  border-bottom-left-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+
+.preview-content pre {
+  margin: 0;
+  padding: 16px 18px;
+  overflow-x: auto;
+  background: var(--code-bg);
+}
+
+.preview-content pre code {
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #d4d4d4;
+  white-space: pre;
+  tab-size: 4;
+}
+
+/* Syntax highlighting colors (VS Code Dark+ inspired) */
+.hljs-keyword { color: #569cd6; font-weight: bold; }
+.hljs-built_in { color: #4ec9b0; }
+.hljs-string { color: #ce9178; }
+.hljs-comment { color: #6a9955; font-style: italic; }
+.hljs-number { color: #b5cea8; }
+.hljs-meta { color: #c586c0; }
+.hljs-literal { color: #569cd6; }
+.hljs-type { color: #4ec9b0; }
+
+/* ---- Tables ---- */
+.table-wrapper {
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.md-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--table-border);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.md-table th {
+  background: var(--table-header-bg);
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 14px;
+  border: 1px solid var(--table-border);
+  text-align: left;
+}
+
+.light-theme .md-table th {
+  color: #111;
+}
+
+.md-table td {
+  padding: 8px 14px;
+  border: 1px solid var(--table-border);
+  vertical-align: top;
+  color: var(--text-primary);
+}
+
+.md-table tbody tr:nth-child(even) {
+  background: var(--table-stripe);
+}
+
+.md-table tbody tr:hover {
+  background: rgba(86, 156, 214, 0.08);
+}
+
+/* ---- Images ---- */
+.preview-content img {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 12px 0;
+}
+
+/* ---- Settings Panel ---- */
+#settings-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+}
+#settings-overlay.open { display: flex; justify-content: center; align-items: center; }
+
+#settings-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px 28px;
+  width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+#settings-panel h3 {
+  margin: 0 0 18px;
+  font-size: 16px;
+  color: var(--text-heading);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.settings-group {
+  margin-bottom: 16px;
+}
+.settings-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.settings-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.settings-row .field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.settings-row .field span {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+.settings-row input[type="number"] {
+  width: 100%;
+  padding: 5px 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+}
+.settings-row input[type="number"]:focus {
+  border-color: var(--accent);
+}
+
+.settings-group select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+.settings-group select:focus { border-color: var(--accent); }
+
+.settings-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.settings-checkbox input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.settings-actions button {
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+.settings-actions button:hover { background: var(--bg-hover); }
+.settings-actions button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.settings-actions button.primary:hover { background: var(--accent-hover); }
