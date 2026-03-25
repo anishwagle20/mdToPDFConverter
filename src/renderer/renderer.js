@@ -353,37 +353,37 @@ function highlightCode(code, lang) {
   result = result.replace(/&#39;(?:[^&]|&(?!#39;))*?&#39;/g, m => addPlaceholder(m, 'string'));
 
   // Numbers
-  result = result.replace(/\b(\d+\.?\d*[fFuUlL]*)\b/g, m => wrapSpan('number', m));
+  result = result.replace(/\b(\d+\.?\d*[fFuUlL]*)\b/g, m => addPlaceholder(m, 'number'));
 
   // Preprocessor
   if (normalizedLang === 'cpp' || normalizedLang === 'c') {
-    result = result.replace(/^(\s*#\w+.*)$/gm, m => wrapSpan('meta', m));
+    result = result.replace(/^(\s*#\w+.*)$/gm, m => addPlaceholder(m, 'meta'));
   }
 
   // Keywords
   const keywords = LANG_KEYWORDS[normalizedLang] || [];
   if (keywords.length > 0) {
     const kwRegex = new RegExp(`\\b(${keywords.join('|')})\\b`, 'g');
-    result = result.replace(kwRegex, m => wrapSpan('keyword', m));
+    result = result.replace(kwRegex, m => addPlaceholder(m, 'keyword'));
   }
 
   // Types
   const types = LANG_TYPES[normalizedLang] || [];
   if (types.length > 0) {
     const typeRegex = new RegExp(`\\b(${types.join('|')})\\b`, 'g');
-    result = result.replace(typeRegex, m => wrapSpan('built_in', m));
+    result = result.replace(typeRegex, m => addPlaceholder(m, 'built_in'));
   }
 
   // Builtins
   const builtins = LANG_BUILTINS[normalizedLang] || [];
   if (builtins.length > 0) {
     const builtinRegex = new RegExp(`\\b(${builtins.join('|')})\\b`, 'g');
-    result = result.replace(builtinRegex, m => wrapSpan('built_in', m));
+    result = result.replace(builtinRegex, m => addPlaceholder(m, 'built_in'));
   }
 
   // Decorators (Python)
   if (normalizedLang === 'python') {
-    result = result.replace(/@\w+/g, m => wrapSpan('meta', m));
+    result = result.replace(/@\w+/g, m => addPlaceholder(m, 'meta'));
   }
 
   // Restore placeholders
@@ -459,10 +459,9 @@ const btnOpen = document.getElementById('btn-open');
 const btnSave = document.getElementById('btn-save');
 const btnExport = document.getElementById('btn-export');
 const btnTheme = document.getElementById('btn-theme');
-const btnSettings = document.getElementById('btn-settings');
+// Settings controls are inline in the md-toolbar
 const resizer = document.getElementById('resizer');
 const editorPanel = document.getElementById('editor-panel');
-const settingsDropdown = document.getElementById('settings-dropdown');
 
 let currentFilePath = null;
 let isDirty = false;
@@ -821,20 +820,70 @@ window.electronAPI.onFileOpened((data) => {
   setFile(data.filePath, data.content);
 });
 
-// ---- Settings Dropdown ----
+// ---- Inline Toolbar Settings ----
 
-btnSettings.addEventListener('click', (e) => {
-  e.stopPropagation();
-  settingsDropdown.classList.toggle('open');
+// Context menus
+let activeContextMenu = null;
+
+function showContextMenu(x, y, items) {
+  hideContextMenu();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    btn.textContent = item.label;
+    if (item.shortcut) {
+      const sc = document.createElement('span');
+      sc.className = 'shortcut';
+      sc.textContent = item.shortcut;
+      btn.appendChild(sc);
+    }
+    btn.addEventListener('click', () => { hideContextMenu(); item.action(); });
+    menu.appendChild(btn);
+  });
+  // Position within viewport
+  menu.style.left = Math.min(x, window.innerWidth - 160) + 'px';
+  menu.style.top = Math.min(y, window.innerHeight - 100) + 'px';
+  document.body.appendChild(menu);
+  activeContextMenu = menu;
+}
+
+function hideContextMenu() {
+  if (activeContextMenu) { activeContextMenu.remove(); activeContextMenu = null; }
+}
+
+document.addEventListener('click', hideContextMenu);
+document.addEventListener('contextmenu', (e) => {
+  // Only handle our custom menus, let default pass elsewhere
 });
 
-document.addEventListener('click', (e) => {
-  if (!settingsDropdown.contains(e.target) && e.target !== btnSettings && !btnSettings.contains(e.target)) {
-    settingsDropdown.classList.remove('open');
+// Editor (left panel) context menu
+editor.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  const hasSelection = editor.selectionStart !== editor.selectionEnd;
+  showContextMenu(e.clientX, e.clientY, [
+    { label: 'Cut', shortcut: '⌘X', action: () => { document.execCommand('cut'); } },
+    { label: 'Copy', shortcut: '⌘C', action: () => { document.execCommand('copy'); } },
+    { label: 'Paste', shortcut: '⌘V', action: () => { editor.focus(); document.execCommand('paste'); } },
+  ]);
+});
+
+// Preview (right panel) context menu
+preview.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  const selection = window.getSelection();
+  const hasSelection = selection && selection.toString().length > 0;
+  const items = [];
+  if (hasSelection) {
+    items.push({ label: 'Copy', shortcut: '⌘C', action: () => {
+      navigator.clipboard.writeText(selection.toString());
+    }});
+  }
+  if (items.length > 0) {
+    showContextMenu(e.clientX, e.clientY, items);
   }
 });
 
-// Live-apply settings from dropdown controls
 document.getElementById('font-select').addEventListener('change', (e) => {
   selectedFont = e.target.value;
   applyFont();
@@ -999,6 +1048,16 @@ function applyToolbarAction(action) {
       cursorStart = start + replacement.length;
       cursorEnd = cursorStart;
       break;
+    case 'cut':
+      document.execCommand('cut');
+      return;
+    case 'copy':
+      document.execCommand('copy');
+      return;
+    case 'paste':
+      editor.focus();
+      document.execCommand('paste');
+      return;
     case 'undo':
       performUndo();
       return;
